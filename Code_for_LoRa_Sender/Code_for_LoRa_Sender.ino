@@ -1,0 +1,63 @@
+//Code for LoRa Sender
+
+ #include <SPI.h>
+  #include <LoRa.h>
+  #include <DHT.h>
+  #include "LowPower.h"    // Low Power header
+
+//Pin definition of DHT11
+  #define DHTPIN 4
+  #define DHTTYPE DHT11
+  DHT dht (DHTPIN,DHTTYPE);
+  void setup() {
+    Serial.begin(9600);
+
+  }
+  
+  void loop() {   // Beginning of the program
+       dht.begin();
+    while (!Serial);
+    Serial.println("LoRa Sender");
+  
+    if (!LoRa.begin(433E6))   //Start LoRa  and its frequency of 433 MHz
+ {
+      LoRa.end();
+      Serial.println("Starting LoRa failed!");
+      while (1);
+    }
+    // Don't forget to clear the flag. /
+    LoRa.sleep();
+        unsigned int sleepCounter;
+// Low Power Mode for 10 minutes 
+// 75*8 sec= 600 sec = 10 minutes
+    for (sleepCounter=75; sleepCounter>0;sleepCounter--)
+    {
+    LowPower.powerDown(SLEEP_8S,ADC_OFF,BOD_OFF);  
+    }
+    delay(1000);
+    // read sensor
+    float H = dht.readHumidity();
+    // Read temperature as Celsius (the default)
+    float T = dht.readTemperature();
+    // Read temperature as Fahrenheit (isFahrenheit = true)
+    float f = dht.readTemperature(true);
+    // Check if any reads failed and exit early (to try again).
+    if (isnan(H) || isnan(T) || isnan(f)) {
+      Serial.println(F("Failed to read from DHT sensor!"));
+      return;
+    }
+    Serial.print("Sending packet: \n");
+    Serial.println("humidity: "+ (String)H + "\ttemperature: "+ (String)T + "\n");
+   delay(1000);
+    // send packet
+    LoRa.beginPacket();
+    LoRa.print("Temp" + (String)T + "&Hum=" + (String)H );
+  
+    LoRa.endPacket();
+  
+LoRa.sleep(); // LoRa sleep
+Serial.println("Lorasleep");
+// Re-enter sleep mode. */
+
+    delay(500);
+  }  // end of Program
